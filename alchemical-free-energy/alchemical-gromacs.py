@@ -16,7 +16,7 @@ import numpy
 from collections import Counter # for counting elements in an array
 from commands import getoutput # a note for the future: in Python 3.X, 'getoutput' is moved to the 'subprocess' module
 import pymbar # multistate Bennett acceptance ratio estimator
-import timeseries # for timeseries analysis 
+from pymbar import timeseries # for timeseries analysis 
 from optparse import OptionParser # for parsing command-line options
 import os # operating system dependent modules of Python
 import time as ttt_time # for timing
@@ -115,6 +115,8 @@ for filename in filenames:
    n_components = 0                                              # Initiallize the number of components tracer.
    for line in excerpt:
       elements = line.split()
+      if 'tr:' in elements:
+          continue
       if 'legend' in elements:
          if 'dH' in elements:
             lv_names.append(elements[8])                         # Store the lambda type names.
@@ -565,13 +567,13 @@ for k in range(K-1):
          #===================================================================================================
          # Estimate free energy difference with Forward-direction EXP (in this case, Deletion from solvent).
          #===================================================================================================   
-         (df['DEXP'], ddf['DEXP']) = pymbar.computeEXP(w_F)
+         (df['DEXP'], ddf['DEXP']) = pymbar.EXP(w_F)
 
       if name == 'GDEL':
          #===================================================================================================
          # Estimate free energy difference with a Gaussian estimate of EXP (in this case, deletion from solvent)
          #===================================================================================================   
-         (df['GDEL'], ddf['GDEL']) = pymbar.computeGauss(w_F)
+         (df['GDEL'], ddf['GDEL']) = pymbar.EXPgauss(w_F)
 
       if any(name == m for m in ['IEXP', 'GINS', 'BAR', 'UBAR', 'RBAR']):
          w_R = u_kln[k+1,k,0:N_k[k+1]] - u_kln[k+1,k+1,0:N_k[k+1]] 
@@ -580,27 +582,27 @@ for k in range(K-1):
          #===================================================================================================
          # Estimate free energy difference with Reverse-direction EXP (in this case, insertion into solvent).
          #===================================================================================================   
-         (rdf,rddf) = pymbar.computeEXP(w_R)
+         (rdf,rddf) = pymbar.EXP(w_R)
          (df['IEXP'], ddf['IEXP']) = (-rdf,rddf)
 
       if name == 'GINS':
          #===================================================================================================
          # Estimate free energy difference with a Gaussian estimate of EXP (in this case, insertion into solvent)
          #===================================================================================================   
-         (rdf,rddf) = pymbar.computeGauss(w_R)
+         (rdf,rddf) = pymbar.EXPgauss(w_R)
          (df['GINS'], ddf['GINS']) = (-rdf,rddf)
 
       if name == 'BAR':
          #===================================================================================================
          # Estimate free energy difference with BAR; use w_F and w_R computed above.
          #===================================================================================================   
-         (df['BAR'], ddf['BAR']) = pymbar.computeBAR(w_F, w_R, relative_tolerance=relative_tolerance, verbose = verbose)      
+         (df['BAR'], ddf['BAR']) = pymbar.BAR(w_F, w_R, relative_tolerance=relative_tolerance, verbose = verbose)      
 
       if name == 'UBAR':
          #===================================================================================================
          # Estimate free energy difference with unoptimized BAR -- assume dF is zero, and just do one evaluation
          #===================================================================================================   
-         (df['UBAR'], ddf['UBAR']) = pymbar.computeBAR(w_F, w_R, verbose = verbose,iterated_solution=False)
+         (df['UBAR'], ddf['UBAR']) = pymbar.BAR(w_F, w_R, verbose = verbose,iterated_solution=False)
 
       if name == 'RBAR':
          #===================================================================================================
@@ -610,7 +612,7 @@ for k in range(K-1):
          min_diff = 1E6
          best_udf = 0
          for trial_udf in range(-10,10,1):
-            (udf, uddf) = pymbar.computeBAR(w_F, w_R, DeltaF=trial_udf, iterated_solution=False, verbose=verbose)
+            (udf, uddf) = pymbar.BAR(w_F, w_R, DeltaF=trial_udf, iterated_solution=False, verbose=verbose)
             diff = numpy.abs(udf - trial_udf)
             if (diff < min_diff):
                best_udf = udf
